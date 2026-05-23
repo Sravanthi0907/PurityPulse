@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training | Oil Adulteration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: rgba(30, 41, 59, 0.7);
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text: #f8fafc;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            background: -webkit-linear-gradient(#60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .back-btn {
+            color: #cbd5e1;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            transition: 0.3s;
+        }
+        .back-btn:hover { background: #cbd5e1; color: #0f172a; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .box {
+            background: rgba(0,0,0,0.2);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        button {
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 1rem;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+        select, input {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            font-family: inherit;
+        }
+        option { background: #1e293b; }
+        .status-area {
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+            text-align: center;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #334155;
+            border-radius: 5px;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Training Mode</h1>
+            <a href="/" class="back-btn">← Home</a>
+        </div>
+
+        <div class="grid">
+            <div class="box">
+                <h2>1. Calibration</h2>
+                <p style="color: #94a3b8; font-size: 0.9em; margin-top: 0.5rem;">Calibrate before collecting ANY samples.</p>
+                <button class="btn-primary" onclick="calibrate('empty')">Calibrate Empty Bottle</button>
+                <p id="empty-res" style="margin-top: 0.5rem; font-size: 0.9em;"></p>
+                
+                <button class="btn-primary" onclick="calibrate('filled')">Calibrate Filled Bottle</button>
+                <p id="filled-res" style="margin-top: 0.5rem; font-size: 0.9em;"></p>
+            </div>
+
+            <div class="box">
+                <h2>2. Data Collection</h2>
+                <label style="display: block; margin-top: 1rem;">Adulteration %</label>
+                <select id="adul-type">
+                    <option value="0">0% (Pure)</option>
+                    <option value="50">50% (Mixed)</option>
+                    <option value="100">100% (Fake)</option>
+                </select>
+                <button class="btn-primary" onclick="startCollection()">Start Collection (100 Samples)</button>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <p id="col-status" style="margin-top: 0.5rem; font-size: 0.9em;">0/100</p>
+            </div>
+        </div>
+
+        <div class="box" style="text-align: center;">
+            <h2>3. Model Training</h2>
+            <p style="color: #94a3b8; font-size: 0.9em; margin-bottom: 1rem;">Train the Hybrid ML Model on the collected dataset.</p>
+            <button class="btn-success" onclick="trainModel()">Train Model</button>
+            <p id="train-status" style="margin-top: 1rem;"></p>
+        </div>
+    </div>
+
+    <script>
+        async function calibrate(type) {
+            document.getElementById(type + '-res').innerText = 'Calibrating...';
+            const res = await fetch('/api/calibrate_' + type, { method: 'POST' });
+            const data = await res.json();
+            if(data.status === 'success') {
+                document.getElementById(type + '-res').innerText = type.charAt(0).toUpperCase() + type.slice(1) + ' Weight: ' + (data.empty_weight || data.filled_weight) + 'g';
+            } else {
+                document.getElementById(type + '-res').innerText = "Error: " + data.message;
+            }
+        }
+
+        async function startCollection() {
+            const label = document.getElementById('adul-type').value;
+            const res = await fetch('/api/start_training', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ label: parseInt(label) })
+            });
+            const data = await res.json();
+            if(data.status === 'success') {
+                pollStatus();
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function trainModel() {
+            document.getElementById('train-status').innerText = "Training models, please wait...";
+            const res = await fetch('/api/train_model', { method: 'POST' });
+            const data = await res.json();
+            document.getElementById('train-status').innerText = data.message;
+        }
+
+        async function pollStatus() {
+            setInterval(async () => {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                
+                const percent = (data.samples_collected / 100) * 100;
+                document.getElementById('progress-fill').style.width = percent + '%';
+                
+                if (data.collecting) {
+                    document.getElementById('col-status').innerText = `Collecting: ${data.samples_collected}/100`;
+                } else if (data.samples_collected >= 100 && data.samples_collected > 0) {
+                    document.getElementById('col-status').innerText = `Completed! 100/100`;
+                }
+            }, 1000);
+        }
+        
+        pollStatus();
+    </script>
+</body>
+</html>

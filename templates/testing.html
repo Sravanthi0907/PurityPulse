@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing | Oil Adulteration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: rgba(30, 41, 59, 0.7);
+            --primary: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text: #f8fafc;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #312e81 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            background: -webkit-linear-gradient(#a78bfa, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .back-btn {
+            color: #cbd5e1;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            transition: 0.3s;
+        }
+        .back-btn:hover { background: #cbd5e1; color: #0f172a; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .box {
+            background: rgba(0,0,0,0.2);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        button {
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 1rem;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #7c3aed; }
+        .result-display {
+            background: rgba(0,0,0,0.4);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            text-align: center;
+            border: 1px dashed rgba(255,255,255,0.2);
+        }
+        .adul-value {
+            font-size: 3rem;
+            font-weight: bold;
+            background: -webkit-linear-gradient(#34d399, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 1rem 0;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Testing Mode</h1>
+            <a href="/" class="back-btn">← Home</a>
+        </div>
+
+        <div class="grid">
+            <div class="box">
+                <h2>Setup Context</h2>
+                <p style="color: #94a3b8; font-size: 0.9em; margin-top: 0.5rem;">Calibrate current session weights before testing logic.</p>
+                <button class="btn-primary" onclick="calibrate('empty')" style="background: #475569;">Set Empty Bottle</button>
+                <p id="empty-res" style="margin-top: 0.5rem; font-size: 0.9em; color:#94a3b8;"></p>
+                
+                <button class="btn-primary" onclick="calibrate('filled')" style="background: #475569;">Set Filled Bottle</button>
+                <p id="filled-res" style="margin-top: 0.5rem; font-size: 0.9em; color:#94a3b8;"></p>
+            </div>
+
+            <div class="box">
+                <h2>Prediction</h2>
+                <button class="btn-primary" onclick="runPrediction()">Predict Adulteration</button>
+                
+                <div class="result-display">
+                    <h3>Adulteration Result</h3>
+                    <div class="adul-value" id="adul-val">--%</div>
+                    
+                    <div class="metric">
+                        <span>Temperature</span>
+                        <span id="res-temp">-- °C</span>
+                    </div>
+                    <div class="metric">
+                        <span>Oil Weight</span>
+                        <span id="res-weight">-- g</span>
+                    </div>
+                    <div class="metric">
+                        <span>Density</span>
+                        <span id="res-density">-- g/ml</span>
+                    </div>
+                    <div class="metric" style="border: none;">
+                        <span>Color (R,G,B)</span>
+                        <span id="res-rgb">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function calibrate(type) {
+            document.getElementById(type + '-res').innerText = 'Setting...';
+            const res = await fetch('/api/calibrate_' + type, { method: 'POST' });
+            const data = await res.json();
+            if(data.status === 'success') {
+                document.getElementById(type + '-res').innerText = type.charAt(0).toUpperCase() + type.slice(1) + ' Weight: ' + (data.empty_weight || data.filled_weight) + 'g';
+            } else {
+                document.getElementById(type + '-res').innerText = "Error: " + data.message;
+            }
+        }
+
+        async function runPrediction() {
+            document.getElementById('adul-val').innerText = '...';
+            const res = await fetch('/api/predict', { method: 'POST' });
+            const data = await res.json();
+            
+            if(data.status === 'success') {
+                const adul = data.adulteration_percentage;
+                const valueEl = document.getElementById('adul-val');
+                valueEl.innerText = adul + '%';
+                
+                if(adul < 20) {
+                    valueEl.style.background = '-webkit-linear-gradient(#34d399, #10b981)'; 
+                } else if(adul < 70) {
+                    valueEl.style.background = '-webkit-linear-gradient(#fbbf24, #f59e0b)'; 
+                } else {
+                    valueEl.style.background = '-webkit-linear-gradient(#f87171, #ef4444)'; 
+                }
+                valueEl.style.webkitBackgroundClip = 'text';
+                valueEl.style.backgroundClip = 'text';
+                
+                document.getElementById('res-temp').innerText = data.data.temp + ' °C';
+                document.getElementById('res-weight').innerText = data.data.oil_weight + ' g';
+                document.getElementById('res-density').innerText = data.data.density + ' g/ml';
+                document.getElementById('res-rgb').innerText = `(${data.data.r}, ${data.data.g}, ${data.data.b})`;
+            } else {
+                alert("Error: " + data.message);
+                document.getElementById('adul-val').innerText = 'Error';
+            }
+        }
+    </script>
+</body>
+</html>
