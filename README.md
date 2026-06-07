@@ -1,4 +1,4 @@
-# PurityPulse — IoT & AI-Powered Smart Oil Adulteration Detection
+# PurityPulse — IoT-Based Oil Adulteration Detection System 
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.9–3.11-blue?logo=python" alt="Python 3.9–3.11"/>
